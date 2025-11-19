@@ -88,11 +88,5 @@ swag init -g cmd/main.go
 ```
 go run cmd/main.go
 ```
-## Usage and Workflow
-#### The system enforces a strict workflow defined by user roles.
-Resource,Admin Access,User Access,Notes
-View Tasks,All tasks,Only assigned tasks,Filtered by X-User-ID header.
-Create Task,Yes (Assigns to any user),No (Forbidden),Only admins can assign.
-Complete Task,Yes,Yes (Only on assigned task),
-Add Comment,Yes,Yes,
-View Comments,Yes,No (Forbidden),Requirement enforced.
+
+
