@@ -30,8 +30,8 @@ func main() {
 	fs := http.FileServer(http.Dir("./web"))
 	router.Handle("/", fs)
 
-	fmt.Println("🚀 Server starting on http://localhost:8080")
-	fmt.Println("📄 Swagger docs at http://localhost:8080/swagger/index.html")
+	fmt.Println("Server starting on http://localhost:8080")
+	fmt.Println("Swagger docs at http://localhost:8080/swagger/index.html")
 	
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
