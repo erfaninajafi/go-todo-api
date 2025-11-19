@@ -9,15 +9,55 @@ import (
 	"todo-api/internal/models"
 )
 
-// GetTodos godoc
-// @Summary Get all todos
-// @Description Get a list of all todo items
-// @Tags todos
-// @Produce json
-// @Success 200 {array} models.Todo
-// @Router /todos [get]
+// Helper to get current user from headers (Simulated Auth)
+func getUserID(r *http.Request) int {
+	idStr := r.Header.Get("X-User-ID")
+	id, _ := strconv.Atoi(idStr)
+	return id
+}
+
+// Helper to check if user is admin
+func isAdmin(userID int) bool {
+	var role string
+	err := database.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+	return err == nil && role == "admin"
+}
+
+// --- USERS ---
+
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	rows, _ := database.DB.Query("SELECT id, username, role FROM users")
+	defer rows.Close()
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		rows.Scan(&u.ID, &u.Username, &u.Role)
+		users = append(users, u)
+	}
+	json.NewEncoder(w).Encode(users)
+}
+
+// --- TODOS ---
+
 func GetTodos(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query("SELECT id, title, completed, created_at FROM todos")
+	currentUserID := getUserID(r)
+
+	// Logic: Admin sees ALL. Users see only their ASSIGNED tasks.
+	query := `
+		SELECT t.id, t.title, t.completed, t.assigned_to, u.username, t.created_at 
+		FROM todos t 
+		LEFT JOIN users u ON t.assigned_to = u.id`
+	
+	var rows *sql.Rows
+	var err error
+
+	if isAdmin(currentUserID) {
+		rows, err = database.DB.Query(query)
+	} else {
+		query += " WHERE t.assigned_to = ?"
+		rows, err = database.DB.Query(query, currentUserID)
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -27,68 +67,57 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	var todos []models.Todo
 	for rows.Next() {
 		var t models.Todo
-		if err := rows.Scan(&t.ID, &t.Title, &t.Completed, &t.CreatedAt); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		var assignedTo sql.NullInt64 // Handle NULLs safely
+		var assignedName sql.NullString
+
+		rows.Scan(&t.ID, &t.Title, &t.Completed, &assignedTo, &assignedName, &t.CreatedAt)
+		
+		t.AssignedTo = int(assignedTo.Int64)
+		t.AssignedName = assignedName.String
 		todos = append(todos, t)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
+	
 	json.NewEncoder(w).Encode(todos)
 }
 
-// CreateTodo godoc
-// @Summary Create a new todo
-// @Description Create a new todo item with a title
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Param todo body models.CreateTodoInput true "New Todo"
-// @Success 201 {object} models.Todo
-// @Router /todos [post]
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
-	var input models.CreateTodoInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	currentUserID := getUserID(r)
+	
+	// Only Admin can create/assign tasks
+	if !isAdmin(currentUserID) {
+		http.Error(w, "Only Admins can assign tasks", http.StatusForbidden)
 		return
 	}
 
-	result, err := database.DB.Exec("INSERT INTO todos (title) VALUES (?)", input.Title)
+	var input models.CreateTodoInput
+	json.NewDecoder(r.Body).Decode(&input)
+
+	res, err := database.DB.Exec("INSERT INTO todos (title, assigned_to) VALUES (?, ?)", input.Title, input.AssignedTo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	id, _ := result.LastInsertId()
-
-	newTodo := models.Todo{
-		ID:        int(id),
-		Title:     input.Title,
-		Completed: false,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newTodo)
+	
+	id, _ := res.LastInsertId()
+	json.NewEncoder(w).Encode(map[string]any{"id": id, "status": "assigned"})
 }
 
-// GetTodoByID godoc
-// @Summary Get a todo
-// @Description Get a specific todo by ID
-// @Tags todos
-// @Produce json
-// @Param id path int true "Todo ID"
-// @Success 200 {object} models.Todo
-// @Failure 404 {string} string "Not Found"
-// @Router /todos/{id} [get]
 func GetTodoByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, _ := strconv.Atoi(idStr)
 
 	var t models.Todo
-	err := database.DB.QueryRow("SELECT id, title, completed, created_at FROM todos WHERE id = ?", id).
-		Scan(&t.ID, &t.Title, &t.Completed, &t.CreatedAt)
+	var assignedTo sql.NullInt64
+	var assignedName sql.NullString
+
+	// Updated query to include assignment info
+	query := `SELECT t.id, t.title, t.completed, t.assigned_to, u.username, t.created_at 
+	          FROM todos t 
+	          LEFT JOIN users u ON t.assigned_to = u.id 
+	          WHERE t.id = ?`
+
+	err := database.DB.QueryRow(query, id).
+		Scan(&t.ID, &t.Title, &t.Completed, &assignedTo, &assignedName, &t.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, "Todo not found", http.StatusNotFound)
@@ -98,47 +127,27 @@ func GetTodoByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	t.AssignedTo = int(assignedTo.Int64)
+	t.AssignedName = assignedName.String
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(t)
 }
 
-// UpdateTodo godoc
-// @Summary Update a todo
-// @Description Update completion status
-// @Tags todos
-// @Accept json
-// @Param id path int true "Todo ID"
-// @Param todo body models.UpdateTodoInput true "Update Todo"
-// @Success 200
-// @Router /todos/{id} [put]
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
-	id, _ := strconv.Atoi(idStr)
+	
+	var input struct { Completed bool `json:"completed"` }
+	json.NewDecoder(r.Body).Decode(&input)
 
-	var input models.UpdateTodoInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	_, err := database.DB.Exec("UPDATE todos SET completed = ? WHERE id = ?", input.Completed, idStr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	if input.Completed != nil {
-		_, err := database.DB.Exec("UPDATE todos SET completed = ? WHERE id = ?", *input.Completed, id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
 	w.WriteHeader(http.StatusOK)
 }
 
-// DeleteTodo godoc
-// @Summary Delete a todo
-// @Description Remove a todo item by ID
-// @Tags todos
-// @Param id path int true "Todo ID"
-// @Success 204
-// @Router /todos/{id} [delete]
 func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, _ := strconv.Atoi(idStr)
@@ -150,4 +159,48 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- COMMENTS ---
+
+func GetComments(w http.ResponseWriter, r *http.Request) {
+	todoID := r.PathValue("id")
+	
+	query := `
+		SELECT c.id, c.todo_id, c.user_id, u.username, c.content, c.created_at
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.todo_id = ? ORDER BY c.created_at ASC
+	`
+	rows, err := database.DB.Query(query, todoID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var comments []models.Comment
+	for rows.Next() {
+		var c models.Comment
+		rows.Scan(&c.ID, &c.TodoID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt)
+		comments = append(comments, c)
+	}
+	json.NewEncoder(w).Encode(comments)
+}
+
+func AddComment(w http.ResponseWriter, r *http.Request) {
+	todoID := r.PathValue("id")
+	userID := getUserID(r) // Who is commenting?
+
+	var input models.CreateCommentInput
+	json.NewDecoder(r.Body).Decode(&input)
+
+	_, err := database.DB.Exec("INSERT INTO comments (todo_id, user_id, content) VALUES (?, ?, ?)", 
+		todoID, userID, input.Content)
+	
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }

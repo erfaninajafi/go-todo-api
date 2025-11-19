@@ -1,23 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go Todo App</title>
-    <link rel="stylesheet" href="style.css">
-</head>
 <body>
     <div class="container">
-        <h1>📝 Go To-Do List</h1>
+        <div class="user-select">
+            <label>👤 Logged in as:</label>
+            <select id="userSelect" onchange="loadApp()">
+                </select>
+        </div>
+        <hr>
+
+        <h1>Task Manager</h1>
         
-        <div class="input-group">
-            <input type="text" id="todoInput" placeholder="What needs to be done?">
-            <button onclick="addTodo()">Add</button>
+        <div id="adminPanel" class="input-group" style="display:none;">
+            <input type="text" id="todoInput" placeholder="Task Title">
+            <select id="assignSelect">
+                <option value="">Assign to...</option>
+            </select>
+            <button onclick="addTodo()">Assign Task</button>
         </div>
 
         <ul id="todoList"></ul>
     </div>
+    
+    <dialog id="commentDialog">
+        <h3>Comments</h3>
+        <div id="commentsList"></div>
+        <input type="text" id="commentInput" placeholder="Type a comment...">
+        <button onclick="postComment()">Send</button>
+        <button onclick="document.getElementById('commentDialog').close()">Close</button>
+    </dialog>
 
     <script src="app.js"></script>
 </body>
-</html>
