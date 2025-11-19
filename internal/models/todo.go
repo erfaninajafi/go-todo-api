@@ -4,13 +4,20 @@ type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
+	Password string `json:"-"` // Never send password in JSON response
 }
 
+type AuthInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// ... (Keep Todo, Comment, CreateTodoInput, CreateCommentInput as they were) ...
 type Comment struct {
 	ID        int    `json:"id"`
 	TodoID    int    `json:"todo_id"`
 	UserID    int    `json:"user_id"`
-	Username  string `json:"username"` // Enriched field for display
+	Username  string `json:"username"`
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
 }
@@ -20,14 +27,13 @@ type Todo struct {
 	Title        string    `json:"title"`
 	Completed    bool      `json:"completed"`
 	AssignedTo   int       `json:"assigned_to"`
-	AssignedName string    `json:"assigned_name"` // Enriched field
+	AssignedName string    `json:"assigned_name"`
 	CreatedAt    string    `json:"created_at"`
-	Comments     []Comment `json:"comments,omitempty"` // Nested comments
 }
 
 type CreateTodoInput struct {
 	Title      string `json:"title"`
-	AssignedTo int    `json:"assigned_to"` // Admin assigns this
+	AssignedTo int    `json:"assigned_to"`
 }
 
 type CreateCommentInput struct {

@@ -28,6 +28,9 @@ func main() {
 	
 	// Users (New)
 	router.HandleFunc("GET /users", handlers.GetUsers)
+	// Auth Routes
+	router.HandleFunc("POST /signup", handlers.Signup)
+	router.HandleFunc("POST /login", handlers.Login)
 
 	// Todos
 	router.HandleFunc("GET /todos", handlers.GetTodos)

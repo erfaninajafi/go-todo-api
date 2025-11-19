@@ -62,3 +62,28 @@ li.completed span {
     font-size: 12px;
     margin-left: 10px;
 }
+
+/* Add these to your existing CSS */
+.input-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.admin-box {
+    border: 2px dashed #007bff;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #eef7ff;
+    border-radius: 8px;
+}
+.logout-btn {
+    background-color: #6c757d;
+    padding: 5px 10px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}

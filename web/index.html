@@ -1,32 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-    <div class="container">
-        <div class="user-select">
-            <label>👤 Logged in as:</label>
-            <select id="userSelect" onchange="loadApp()">
-                </select>
-        </div>
-        <hr>
 
-        <h1>Task Manager</h1>
-        
-        <div id="adminPanel" class="input-group" style="display:none;">
-            <input type="text" id="todoInput" placeholder="Task Title">
-            <select id="assignSelect">
-                <option value="">Assign to...</option>
-            </select>
-            <button onclick="addTodo()">Assign Task</button>
+    <div id="authSection" class="container">
+        <h1 id="authTitle">Login</h1>
+        <div class="input-group-vertical">
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="handleAuth()" id="authBtn">Login</button>
+        </div>
+        <p id="toggleAuthText">
+            Don't have an account? <a href="#" onclick="toggleAuthMode()">Sign up</a>
+        </p>
+    </div>
+
+    <div id="dashboardSection" class="container" style="display:none;">
+        <div class="header">
+            <h2 id="welcomeMsg">Welcome</h2>
+            <button onclick="logout()" class="logout-btn">Logout</button>
         </div>
 
+        <div id="adminPanel" class="admin-box" style="display:none;">
+            <h3>Assign New Task</h3>
+            <div class="input-group">
+                <input type="text" id="todoInput" placeholder="Task Title">
+                <select id="assignSelect"><option value="">Assign to...</option></select>
+                <button onclick="createTask()">Assign</button>
+            </div>
+        </div>
+
+        <h3>My Tasks List</h3>
         <ul id="todoList"></ul>
     </div>
-    
+
     <dialog id="commentDialog">
-        <h3>Comments</h3>
+        <h3>Task Comments</h3>
         <div id="commentsList"></div>
-        <input type="text" id="commentInput" placeholder="Type a comment...">
-        <button onclick="postComment()">Send</button>
+        <p id="adminOnlyMsg" style="color:red; display:none; font-size:0.8rem;">
+            *Only Admins can view previous comments.
+        </p>
+        
+        <div class="input-group">
+            <input type="text" id="commentInput" placeholder="Write a comment...">
+            <button onclick="postComment()">Send</button>
+        </div>
+        <br>
         <button onclick="document.getElementById('commentDialog').close()">Close</button>
     </dialog>
 
     <script src="app.js"></script>
 </body>
+</html>
