@@ -1,0 +1,22 @@
+
+# Binaries for programs
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+*.obj
+# Local package cache
+.cache/
+# Compiled Go programs
+/bin/
+# Dependencies
+vendor/
+# IDE/OS specific files
+.DS_Store
+.idea/
+.vscode/
+# Swagger docs that are generated
+/docs/
+
