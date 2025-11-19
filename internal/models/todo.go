@@ -4,7 +4,7 @@ type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
-	Password string `json:"-"` // Never send password in JSON response
+	Password string `json:"-"` 
 }
 
 type AuthInput struct {
@@ -12,7 +12,6 @@ type AuthInput struct {
 	Password string `json:"password"`
 }
 
-// ... (Keep Todo, Comment, CreateTodoInput, CreateCommentInput as they were) ...
 type Comment struct {
 	ID        int    `json:"id"`
 	TodoID    int    `json:"todo_id"`

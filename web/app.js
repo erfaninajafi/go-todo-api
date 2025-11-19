@@ -1,9 +1,8 @@
 const API_URL = "http://localhost:8080";
 let isSignup = false;
-let currentUser = null; // Stores {id, username, role}
+let currentUser = null; 
 let currentTodoId = null;
 
-// --- AUTH LOGIC ---
 
 function toggleAuthMode() {
     isSignup = !isSignup;
@@ -27,8 +26,6 @@ async function handleAuth() {
 
     if (res.ok) {
         const data = await res.json();
-        // If signup, we just get success message, need to switch to login or auto-login
-        // For simplicity, if signup successful, we treat it as login
         currentUser = isSignup ? {id: data.id, role: data.role, username: u} : data;
         
         document.getElementById("authSection").style.display = "none";
@@ -44,12 +41,10 @@ function logout() {
     location.reload();
 }
 
-// --- DASHBOARD LOGIC ---
 
 async function initDashboard() {
     document.getElementById("welcomeMsg").innerText = `Hello, ${currentUser.username} (${currentUser.role})`;
 
-    // Setup Admin Panel
     if (currentUser.role === 'admin') {
         document.getElementById("adminPanel").style.display = "block";
         loadUsersForDropdown();
@@ -102,8 +97,6 @@ async function loadTodos() {
     });
 }
 
-// --- TASKS & COMMENTS ---
-
 async function createTask() {
     const title = document.getElementById("todoInput").value;
     const assignedTo = document.getElementById("assignSelect").value;
@@ -131,7 +124,6 @@ async function openComments(id) {
     const list = document.getElementById("commentsList");
     list.innerHTML = "Loading...";
     
-    // Logic: If Admin, fetch comments. If User, show 'Hidden' message.
     if (currentUser.role === 'admin') {
         const res = await fetch(`${API_URL}/todos/${id}/comments`, {
             headers: { "X-User-ID": currentUser.id }
@@ -158,7 +150,6 @@ async function postComment() {
     });
     document.getElementById("commentInput").value = "";
     
-    // If admin, refresh list immediately
     if (currentUser.role === 'admin') {
         openComments(currentTodoId);
     } else {

@@ -6,14 +6,14 @@ import (
     "log"
     "time"
 
-    _ "github.com/go-sql-driver/mysql" // Import driver anonymously
+    _ "github.com/go-sql-driver/mysql" 
 )
 
 var DB *sql.DB
 
 func ConnectDB() {
     // format: username:password@tcp(host:port)/dbname
-    dsn := "root:yourpassword@tcp(127.0.0.1:3306)/todo_db?parseTime=true"
+    dsn := "root:Erfan.judo8@tcp(127.0.0.1:3306)/todo_db?parseTime=true"
     
     var err error
     DB, err = sql.Open("mysql", dsn)

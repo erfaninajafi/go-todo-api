@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// --- AUTH UTILS ---
+
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -23,7 +23,6 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-// Helper to get current user ID from headers (Simplified Session)
 func getUserID(r *http.Request) int {
 	idStr := r.Header.Get("X-User-ID")
 	id, _ := strconv.Atoi(idStr)
@@ -36,8 +35,6 @@ func isAdmin(userID int) bool {
 	return err == nil && role == "admin"
 }
 
-// --- AUTH HANDLERS ---
-
 func Signup(w http.ResponseWriter, r *http.Request) {
 	var input models.AuthInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -46,8 +43,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashedPwd, _ := hashPassword(input.Password)
-	
-	// First user is Admin, others are User
+
 	role := "user"
 	var count int
 	database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
@@ -90,8 +86,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// --- USER HANDLERS ---
-
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	rows, _ := database.DB.Query("SELECT id, username, role FROM users")
 	defer rows.Close()
@@ -103,8 +97,6 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(users)
 }
-
-// --- TODO HANDLERS ---
 
 func GetTodos(w http.ResponseWriter, r *http.Request) {
 	currentUserID := getUserID(r)
@@ -120,7 +112,6 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	if isAdmin(currentUserID) {
 		rows, err = database.DB.Query(query)
 	} else {
-		// Users only see their own tasks
 		query += " WHERE t.assigned_to = ?"
 		rows, err = database.DB.Query(query, currentUserID)
 	}
@@ -171,17 +162,13 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTodoByID(w http.ResponseWriter, r *http.Request) {
-	// Minimal implementation for Swagger
 	w.WriteHeader(http.StatusOK)
 }
 
 
-// --- COMMENT HANDLERS ---
-
 func GetComments(w http.ResponseWriter, r *http.Request) {
 	currentUserID := getUserID(r)
 
-	// RULE: Only Admin can see comments
 	if !isAdmin(currentUserID) {
 		http.Error(w, "Only Admins can view comments", http.StatusForbidden)
 		return
@@ -205,7 +192,6 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddComment(w http.ResponseWriter, r *http.Request) {
-	// Users CAN add comments (but they won't see them after adding)
 	todoID := r.PathValue("id")
 	userID := getUserID(r)
 	var input models.CreateCommentInput
